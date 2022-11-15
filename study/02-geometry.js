@@ -1,4 +1,5 @@
 import * as THREE from '../build/three.module.js';
+import { OrbitControls } from '../examples/jsm/controls/OrbitControls.js';
 
 // App 클래스를 정의
 class App {
@@ -30,6 +31,8 @@ class App {
     this._setupLight();
     // 3차원 모델을 설정하는 _setupModel method 호출
     this._setupModel();
+    // OrbitControls와 같은 컨트롤들을 정의하는데 사용하는 메서드
+    this._setupControls();
 
     // 창 크기가 변경되면 발생하는 onresize 이벤트에 클래스의 resize method를 지정
     // (renderer나 camera는 창 크기가 변경될 때 마다 그 크기에 맞게 속성 값을 재설정해줘야 하므로 resize 이벤트 필요)
@@ -44,6 +47,10 @@ class App {
     // 이 method를 requestAnimationFrame에 넘겨줘서 requestAnimationFrame은 적당한 시점에 또한 최대한 빠르게 render method 호출해줌
     // bind 통해서 넘겨주는 이유는 render method의 코드 안에서 사용되는 this가 이 app 클래스의 객체를 가리키도록 하기 위함
     requestAnimationFrame(this.render.bind(this));
+  }
+
+  _setupControls() {
+    new OrbitControls(this._camera, this._divContainer); // OrbitControls 객체 생성 시에는 카메라 객체와 마우스 이벤트를 받는 DOM 요소 필요
   }
 
   _setupCamera() {
@@ -73,13 +80,30 @@ class App {
   }
 
   _setupModel() {
-    const geometry = new THREE.BoxGeometry(1, 1, 1); // 가로, 세로, 깊이
-    const material = new THREE.MeshPhongMaterial({ color: 0x44a88 }); // 파란색 계열의 재질 생성
+    // 가로 세로 깊이에 대한 크기가 모두 1인 지오메트리와
+    // 회색 색상의 재질을 이용하여
+    // Mesh 타입의 오브젝트를 생성
+    // BoxGeometry는 가로, 세로, 깊이에 대한 크기와 함께 가로, 세로, 깊이 각각에 대한 분할(Segments)수로 정의됨
+    // 가로 세로 깊이에 대한 분할수는 지정하지 않으면 기본값 1
+    const geometry = new THREE.BoxGeometry(1, 1, 1, 3, 3, 3);
+    const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+    const cube = new THREE.Mesh(geometry, fillMaterial);
 
-    const cube = new THREE.Mesh(geometry, material);
+    // 노란색 선에 대한 재질 생성
+    // 이 재질과 앞서 만든 지오메트리를 이용해 line 타입의 오브젝트 생성
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+    const line = new THREE.LineSegments(
+      new THREE.WireframeGeometry(geometry), // WireframeGeometry 적용 안하면 모델의 모든 외곽선이 표시되지 않음
+      lineMaterial
+    );
 
-    this._scene.add(cube);
-    this._cube = cube;
+    // Mesh 오브젝트와 line 오브젝트를 하나의 오브젝트로 다루기 위해 group으로 묶기
+    const group = new THREE.Group();
+    group.add(cube);
+    group.add(line);
+
+    this._scene.add(group); // group 객체를 scene에 추가
+    this._cube = group;
   }
 
   resize() {
@@ -103,8 +127,9 @@ class App {
 
   update(time) {
     time *= 0.001; // second unit
-    this._cube.rotation.x = time;
-    this._cube.rotation.y = time;
+    // 아래 코드 주석처리해서 자동으로 회전하지 않게
+    // this._cube.rotation.x = time;
+    // this._cube.rotation.y = time;
   }
 }
 
